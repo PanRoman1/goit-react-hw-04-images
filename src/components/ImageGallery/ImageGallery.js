@@ -37,12 +37,11 @@ export const ImageGallery = ({ formQuery }) => {
     async function fetchImages() {
       try {
         if (query === '') {
+          setVisibleBtn(false);
           return;
         }
-
         setIsLoading(true);
         setVisibleBtn(false);
-
         const imageList = await getImages(query, page);
         if (imageList.totalHits === 0) {
           toast.warn(`Фото на тематику "${query}" не знайдено`, {
@@ -50,7 +49,6 @@ export const ImageGallery = ({ formQuery }) => {
           });
         }
         setImages(prevImages => [...prevImages, ...imageList.hits]);
-
         setIsLoading(false);
         setTotalHits(imageList.totalHits);
       } catch (error) {
@@ -73,9 +71,14 @@ export const ImageGallery = ({ formQuery }) => {
     setPage(prevPage => prevPage + 1);
   };
 
+  useEffect(() => {
+    if (images.length && page !== 1) smoothScroll();
+  }, [images, page]);
+
   return (
     <>
       <Gallery>
+        {error && <p>Ресурс не доступний з технічних причин</p>}
         {images.map(image => (
           <ImageGalleryItem image={image} key={image.id} />
         ))}
