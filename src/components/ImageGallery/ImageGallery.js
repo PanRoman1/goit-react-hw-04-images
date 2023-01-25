@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
 import { Gallery } from './ImageGallery.styled';
@@ -18,89 +18,73 @@ function smoothScroll() {
   });
 }
 
-export class ImageGallery extends Component {
-  state = {
-    query: '',
-    images: [],
-    totalHits: 0,
-    isLoading: false,
-    page: 1,
-    error: false,
-    visibleBtn: false,
-  };
+export const ImageGallery = ({ formQuery }) => {
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [totalHits, setTotalHits] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState(null);
+  const [visibleBtn, setVisibleBtn] = useState(false);
 
-  async componentDidUpdate(prevProps, prevState) {
-    const prevQuery = prevProps.formQuery;
-    const nextQuery = this.props.formQuery;
-    const prevPage = prevState.page;
-    const nextPage = this.state.page;
-    const { images, visibleBtn, totalHits, query } = this.state;
-    const prevStateQuery = prevState.query;
+  useEffect(() => {
+    setPage(1);
+    setImages([]);
+    setQuery(formQuery);
+  }, [formQuery]);
 
-    if (prevQuery !== nextQuery) {
-      this.setState(prev => ({
-        ...prev,
-        images: [],
-        page: 1,
-        query: this.props.formQuery,
-      }));
-    }
-
-    if (prevStateQuery !== query || (prevPage !== nextPage && nextPage !== 1)) {
+  useEffect(() => {
+    async function fetchImages() {
       try {
-        this.setState({ isLoading: true });
-        const imageList = await getImages(nextQuery, nextPage);
+        if (query === '') {
+          return;
+        }
+
+        setIsLoading(true);
+        setVisibleBtn(false);
+
+        const imageList = await getImages(query, page);
         if (imageList.totalHits === 0) {
-          toast.warn(`Фото на тематику "${this.state.query}" не знайдено`, {
+          toast.warn(`Фото на тематику "${query}" не знайдено`, {
             theme: 'colored',
           });
         }
-        this.setState(
-          state => ({
-            images: [...state.images, ...imageList.hits],
-            isLoading: false,
-            totalHits: imageList.totalHits,
-          }),
-          () => {
-            if (nextPage !== 1) {
-              smoothScroll();
-            }
-          }
-        );
+        setImages(prevImages => [...prevImages, ...imageList.hits]);
+
+        setIsLoading(false);
+        setTotalHits(imageList.totalHits);
       } catch (error) {
-        this.setState({ error: true, isLoading: false });
+        setError(true);
+        setIsLoading(false);
       }
     }
+    fetchImages();
+  }, [page, query]);
 
+  useEffect(() => {
     if (images.length !== 0 && !visibleBtn && images.length < totalHits) {
-      this.setState({ visibleBtn: true });
+      setVisibleBtn(true);
     } else if (images.length >= totalHits && visibleBtn) {
-      this.setState({ visibleBtn: false });
+      setVisibleBtn(false);
     }
-  }
+  }, [images, totalHits, visibleBtn]);
 
-  onClickLoadMoreBtn = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const onClickLoadMoreBtn = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  render() {
-    const { images, isLoading, visibleBtn } = this.state;
-
-    return (
-      <>
-        <Gallery>
-          {images.map(image => (
-            <ImageGalleryItem image={image} key={image.id} />
-          ))}
-        </Gallery>
-        {isLoading && <Loader />}
-        {visibleBtn && <Button onClick={this.onClickLoadMoreBtn} />}
-      </>
-    );
-  }
-}
+  return (
+    <>
+      <Gallery>
+        {images.map(image => (
+          <ImageGalleryItem image={image} key={image.id} />
+        ))}
+      </Gallery>
+      {isLoading && <Loader />}
+      {visibleBtn && <Button onClick={onClickLoadMoreBtn} />}
+    </>
+  );
+};
 
 ImageGallery.propTypes = {
   formQuery: PropTypes.string.isRequired,

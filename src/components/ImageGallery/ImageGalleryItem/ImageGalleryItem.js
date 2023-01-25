@@ -1,40 +1,30 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { GalleryItem, GalleryItemImage } from './ImageGalleryItem.styled';
 import { Modal } from 'components/Modal/Modal';
 
-export class ImageGalleryItem extends Component {
-  state = {
-    showModal: false,
+export const ImageGalleryItem = ({
+  image: { webformatURL, tags, largeImageURL },
+}) => {
+  const [showModal, setShowModal] = useState(false);
+
+  const toggleModal = () => {
+    setShowModal(prevShowModal => !prevShowModal);
   };
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
-  };
-
-  render() {
-    const { webformatURL, tags, largeImageURL } = this.props.image;
-    console.log();
-    return (
-      <GalleryItem>
-        <GalleryItemImage
-          src={webformatURL}
-          alt={tags}
-          onClick={this.toggleModal}
+  return (
+    <GalleryItem>
+      <GalleryItemImage src={webformatURL} alt={tags} onClick={toggleModal} />
+      {showModal && (
+        <Modal
+          onClose={toggleModal}
+          imageUrl={largeImageURL}
+          imageTags={tags}
         />
-        {this.state.showModal && (
-          <Modal
-            onClose={this.toggleModal}
-            imageUrl={largeImageURL}
-            imageTags={tags}
-          />
-        )}
-      </GalleryItem>
-    );
-  }
-}
+      )}
+    </GalleryItem>
+  );
+};
 
 ImageGalleryItem.propTypes = {
   image: PropTypes.shape({
